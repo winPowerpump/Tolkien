@@ -82,18 +82,21 @@ export default function Home() {
                   {w.wallet.slice(0, 6)}...{w.wallet.slice(-6)}
                 </p>
                 <p className="text-xs text-gray-300">
-                  {new Date(w.time).toLocaleTimeString()}
+                  {w.created_at ? new Date(w.created_at).toLocaleTimeString() : 'Invalid Date'}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-lg font-bold">{w.amount.toFixed(4)} SOL</p>
-                <a
-                  href={`https://solscan.io/tx/${w.sig}`}
-                  target="_blank"
-                  className="text-xs text-blue-300 hover:underline"
-                >
-                  View Tx
-                </a>
+                {w.signature && (
+                  <a
+                    href={`https://solscan.io/tx/${w.signature}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-300 hover:underline"
+                  >
+                    View Tx
+                  </a>
+                )}
               </div>
             </div>
           ))
