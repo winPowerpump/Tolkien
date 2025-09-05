@@ -11,7 +11,6 @@ export default function Home() {
 
   const contractAddress = "XXXpump"
 
-  // countdown timer
   useEffect(() => {
     const interval = setInterval(() => {
       setCountdown((c) => (c > 0 ? c - 1 : 60));
@@ -19,7 +18,6 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // fetch winners list
   async function fetchWinners() {
     try {
       const res = await fetch("/api/claim", { method: "POST" });
@@ -30,18 +28,16 @@ export default function Home() {
     }
   }
 
-  // poll winners every 10s
   useEffect(() => {
     fetchWinners();
     const interval = setInterval(fetchWinners, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  // manually trigger claim + distribute
   async function handleManualClaim() {
     setLoading(true);
     try {
-      const res = await fetch("/api/claim"); // GET triggers claim + distribute
+      const res = await fetch("/api/claim");
       await res.json();
       fetchWinners();
     } catch (e) {
@@ -52,12 +48,11 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#15161B] text-white overflow-hidden relative">
-      {/* Background pattern */}
+
       <div className="absolute inset-0 bg-black/20 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
       </div>
 
-      {/* Fixed positioned clickable elements */}
       <div className="fixed top-3 right-3 z-50 flex items-center">
         <Link
           href="https://x.com/powerpumpfun"
@@ -73,7 +68,7 @@ export default function Home() {
       </div>
       
       <div className="relative z-10 flex flex-col items-center p-4 sm:p-8">
-        {/* Header */}
+
         <div className="text-center my-8">
           <img 
             src="/power.png" 
@@ -82,7 +77,6 @@ export default function Home() {
           />
         </div>
 
-        {/* Countdown Card */}
         <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-6 sm:p-8 text-center mb-8 min-w-[280px]">
           <div className="flex items-center justify-center gap-2 mb-3">
             <p className="text-base font-semibold text-white">Next pump in</p>
@@ -92,7 +86,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Winners Section */}
         <div className="w-full max-w-2xl">
           <div className="flex items-center justify-center gap-3 mb-6">
             <h2 className="text-2xl sm:text-3xl font-semibold">
