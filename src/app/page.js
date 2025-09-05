@@ -1,48 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import AddressDisplay from "./components/copy";
+import CountdownTimer from "./components/CountdownTimer";
 import Link from "next/link";
-import AnimatedMarquee from "./components/AnimatedMarquee"; // Assumes you saved the file in './components/'
 
 export default function Home() {
-  const [countdown, setCountdown] = useState(60);
   const [winners, setWinners] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lastClaimTime, setLastClaimTime] = useState(null);
   const [serverTimeOffset, setServerTimeOffset] = useState(0);
   const [isTimeSynced, setIsTimeSynced] = useState(false);
-  const [noHolders, setNoHolders] = useState(false); // New state for empty token holders
+  const [noHolders, setNoHolders] = useState(false);
 
   const contractAddress = "XXXXpump";
 
-  // Get server-synchronized time
-  const getServerTime = () => {
-    const localTime = new Date();
-    return new Date(localTime.getTime() + serverTimeOffset);
-  };
-
-  // Calculate seconds until next minute using server time
-  const getSecondsUntilNextMinute = () => {
-    const serverTime = getServerTime();
-    const secondsElapsed = serverTime.getSeconds();
-    const millisecondsElapsed = serverTime.getMilliseconds();
-    
-    // Calculate precise countdown
-    const totalElapsedMs = (secondsElapsed * 1000) + millisecondsElapsed;
-    const millisecondsUntilNext = 60000 - totalElapsedMs;
-    return Math.ceil(millisecondsUntilNext / 1000);
-  };
-
-  // Sync with server time
-  const syncServerTime = async () => {
+  // Use useCallback to prevent unnecessary re-renders
+  const syncServerTime = useCallback(async () => {
     try {
       const requestStart = Date.now();
       const res = await fetch("/api/claim", { method: "POST" });
       const requestEnd = Date.now();
       const data = await res.json();
       
-      // Check if there's an error indicating no token holders
       if (!data.success && data.error && data.error.includes("No token holders")) {
         setNoHolders(true);
         return;
@@ -59,42 +39,20 @@ export default function Home() {
         const offset = adjustedServerTime - localTime;
         setServerTimeOffset(offset);
         setIsTimeSynced(true);
-        
-        const secondsLeft = data.secondsUntilNext || getSecondsUntilNextMinute();
-        setCountdown(secondsLeft);
-        
         setWinners(data.winners || []);
         
-        console.log(`Time synced. Offset: ${offset}ms, Countdown: ${secondsLeft}s`);
+        console.log(`Time synced. Offset: ${offset}ms`);
       }
     } catch (e) {
       console.error("Failed to sync server time:", e);
       setIsTimeSynced(false);
     }
-  };
+  }, []);
 
   // Initial sync on component mount
   useEffect(() => {
     syncServerTime();
-  }, []);
-
-  // Update countdown every second
-  useEffect(() => {
-    if (!isTimeSynced || noHolders) return;
-
-    const interval = setInterval(() => {
-      const secondsLeft = getSecondsUntilNextMinute();
-      setCountdown(secondsLeft);
-      
-      if (secondsLeft >= 59) {
-        setTimeout(() => {
-          syncServerTime();
-        }, 2000);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isTimeSynced, serverTimeOffset, noHolders]);
+  }, [syncServerTime]);
 
   // Periodic winner fetching and re-sync
   useEffect(() => {
@@ -105,9 +63,9 @@ export default function Home() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [noHolders]);
+  }, [noHolders, syncServerTime]);
 
-  async function handleManualClaim() {
+  const handleManualClaim = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/claim");
@@ -117,7 +75,7 @@ export default function Home() {
       console.error(e);
     }
     setLoading(false);
-  }
+  }, [syncServerTime]);
 
   // Format the last claim time for display
   const formatLastClaimTime = (time) => {
@@ -127,7 +85,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#15161B] text-white overflow-hidden relative">
-
       <div className="fixed inset-0 bg-black/20 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
       </div>
@@ -158,7 +115,6 @@ export default function Home() {
       </div>
       
       <div className="relative z-10 flex flex-col items-center p-4 sm:p-8">
-
         <div className="text-center my-8">
           <img 
             src="/power.png" 
@@ -167,7 +123,6 @@ export default function Home() {
           />
         </div>
 
-        {/* Show spinning pump.png when no token holders */}
         {noHolders ? (
           <div className="flex flex-col items-center justify-center flex-1 min-h-[60vh]">
             <div className="animate-spin">
@@ -183,32 +138,11 @@ export default function Home() {
           </div>
         ) : (
           <>
-            {/* Normal content when TOKEN_MINT is configured */}
-            <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-6 sm:p-8 text-center mb-8 min-w-[280px]">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <p className="text-base font-semibold text-white">Next pump in</p>
-                {!isTimeSynced && (
-                  <span className="text-xs text-yellow-400 bg-yellow-400/20 px-2 py-1 rounded">
-                    Syncing...
-                  </span>
-                )}
-              </div>
-              <div className="bg-[#67D682] rounded-2xl p-4">
-                <h2 className="text-5xl sm:text-6xl font-bold">{countdown}s</h2>
-              </div>
-              <div className="mt-3">
-                <p className="text-xs text-white/60 mx-[10%]">
-                  *Pump reward takes about ~40sec. to get to winner
-                </p>
-              </div>
-              {lastClaimTime && (
-                <div className="mt-3 hidden">
-                  <p className="text-xs text-white/60">
-                    Last distribution: {formatLastClaimTime(lastClaimTime)}
-                  </p>
-                </div>
-              )}
-            </div>
+            <CountdownTimer 
+              serverTimeOffset={serverTimeOffset}
+              isTimeSynced={isTimeSynced}
+              onSyncNeeded={syncServerTime}
+            />
 
             <div className="w-full max-w-2xl">
               <div className="flex items-center justify-center gap-3 mb-6">
