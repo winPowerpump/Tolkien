@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AddressDisplay from "./components/copy";
 import Link from "next/link";
-import Marquee from "react-fast-marquee";
+import AnimatedMarquee from "./components/AnimatedMarquee"; // Assumes you saved the file in './components/'
 
 export default function Home() {
   const [countdown, setCountdown] = useState(60);
@@ -132,9 +132,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
       </div>
 
-      <div className="absolute top-0 index-0 w-screen text-sm py-[2px]">
-        <Marquee speed={100}>Powerpump is a fully automated lottery protocol built on&nbsp;<a className="text-blue-500 underline" href="https://pump.fun">pump.fun</a>. Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;Powerpump is a fully automated lottery protocol built on&nbsp;<a className="text-blue-500 underline" href="https://pump.fun">pump.fun</a>. Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;</Marquee>
-      </div>
+      <AnimatedMarquee />
 
       <div className="fixed top-5 right-3 z-50 flex items-center">
         <Link
