@@ -8,13 +8,41 @@ export default function Home() {
   const [countdown, setCountdown] = useState(60);
   const [winners, setWinners] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [lastClaimTime, setLastClaimTime] = useState(null);
 
-  const contractAddress = "XXXpump"
+  const contractAddress = "XXXpump";
+
+  // Calculate seconds until next minute
+  const getSecondsUntilNextMinute = () => {
+    const now = new Date();
+    const secondsElapsed = now.getSeconds();
+    return 60 - secondsElapsed;
+  };
+
+  // Get the time of the last completed minute
+  const getLastClaimTime = () => {
+    const now = new Date();
+    const lastMinute = new Date(now);
+    lastMinute.setSeconds(0, 0); // Set to start of current minute
+    return lastMinute;
+  };
 
   useEffect(() => {
+    // Initialize countdown to sync with actual cron timing
+    const initialCountdown = getSecondsUntilNextMinute();
+    setCountdown(initialCountdown);
+    setLastClaimTime(getLastClaimTime());
+
     const interval = setInterval(() => {
-      setCountdown((c) => (c > 0 ? c - 1 : 60));
+      const secondsLeft = getSecondsUntilNextMinute();
+      setCountdown(secondsLeft);
+      
+      // Update last claim time when we hit a new minute
+      if (secondsLeft === 60 || secondsLeft === 0) {
+        setLastClaimTime(getLastClaimTime());
+      }
     }, 1000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -30,7 +58,19 @@ export default function Home() {
 
   useEffect(() => {
     fetchWinners();
-    const interval = setInterval(fetchWinners, 10000);
+    
+    // Fetch winners every 30 seconds, but also immediately after each minute mark
+    const interval = setInterval(() => {
+      fetchWinners();
+      
+      // If we just passed a minute mark, fetch again after a few seconds
+      // to catch the new winner from the cron job
+      const now = new Date();
+      if (now.getSeconds() <= 5) {
+        setTimeout(fetchWinners, 3000);
+      }
+    }, 10000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -45,6 +85,12 @@ export default function Home() {
     }
     setLoading(false);
   }
+
+  // Format the last claim time for display
+  const formatLastClaimTime = (time) => {
+    if (!time) return "Unknown";
+    return time.toLocaleTimeString();
+  };
 
   return (
     <main className="min-h-screen bg-[#15161B] text-white overflow-hidden relative">
@@ -84,6 +130,13 @@ export default function Home() {
           <div className="bg-[#67D682] rounded-2xl p-4">
             <h2 className="text-5xl sm:text-6xl font-bold">{countdown}s</h2>
           </div>
+          {lastClaimTime && (
+            <div className="mt-3 hidden">
+              <p className="text-xs text-white/60">
+                Last distribution: {formatLastClaimTime(lastClaimTime)}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="w-full max-w-2xl">
