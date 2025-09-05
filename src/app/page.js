@@ -1,8 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import AddressDisplay from "./components/copy";
 import Link from "next/link";
+
+// Memoized marquee component to prevent re-renders
+const MarqueeComponent = memo(() => {
+  return (
+    <div className="marquee-container">
+      <div className="marquee-content">
+        Powerpump is a fully automated lottery protocol built on&nbsp;
+        <a href="https://pump.fun">pump.fun</a>
+        . Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;
+        Powerpump is a fully automated lottery protocol built on&nbsp;
+        <a href="https://pump.fun">pump.fun</a>
+        . Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;
+      </div>
+    </div>
+  );
+});
+
+MarqueeComponent.displayName = 'MarqueeComponent';
 
 export default function Home() {
   const [countdown, setCountdown] = useState(60);
