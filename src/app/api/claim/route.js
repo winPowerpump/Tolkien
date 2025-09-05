@@ -8,20 +8,57 @@ import {
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import bs58 from "bs58";
+import { createClient } from '@supabase/supabase-js';
 
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 const PUMPPORTAL_API_KEY = process.env.PUMPPORTAL_API_KEY;
 const WALLET_SECRET = process.env.WALLET_SECRET;
 const TOKEN_MINT = process.env.TOKEN_MINT;
 const DEV_WALLET = process.env.DEV_WALLET;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 const RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
 const connection = new Connection(RPC_URL, "confirmed");
 const WALLET = Keypair.fromSecretKey(bs58.decode(WALLET_SECRET));
 
-// store winners in memory (resets if serverless redeploys)
-// for persistence, use a DB like Supabase
-let winners = [];
+// Initialize Supabase client
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function saveWinner(wallet, amount, signature) {
+  const { data, error } = await supabase
+    .from('winners')
+    .insert([
+      {
+        wallet,
+        amount,
+        signature
+      }
+    ])
+    .select();
+
+  if (error) {
+    console.error('Error saving winner:', error);
+    throw error;
+  }
+
+  return data[0];
+}
+
+async function getRecentWinners(limit = 20) {
+  const { data, error } = await supabase
+    .from('winners')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error fetching winners:', error);
+    throw error;
+  }
+
+  return data;
+}
 
 async function claimFees() {
   const response = await fetch(
@@ -175,15 +212,15 @@ export async function GET() {
       sig = await sendSol(recipient, sendAmount);
     }
 
-    // record winner
-    winners.unshift({
-      wallet: recipient.toBase58(),
-      amount: sendAmount / 1e9, // in SOL
-      sig,
-      time: new Date().toISOString(),
-    });
+    // Save winner to database
+    const winner = await saveWinner(
+      recipient.toBase58(),
+      sendAmount / 1e9, // in SOL
+      sig
+    );
 
-    if (winners.length > 20) winners.pop();
+    // Get recent winners for response
+    const winners = await getRecentWinners(20);
 
     return NextResponse.json({
       success: true,
@@ -191,6 +228,7 @@ export async function GET() {
       recipient: recipient.toBase58(),
       forwardedLamports: sendAmount,
       txSignature: sig,
+      winner,
       winners,
     });
   } catch (e) {
@@ -202,7 +240,16 @@ export async function GET() {
   }
 }
 
-// expose winners list
+// Get winners from database
 export async function POST() {
-  return NextResponse.json({ winners });
+  try {
+    const winners = await getRecentWinners(20);
+    return NextResponse.json({ winners });
+  } catch (e) {
+    console.error("Error fetching winners:", e);
+    return NextResponse.json(
+      { success: false, error: e.message },
+      { status: 500 }
+    );
+  }
 }
