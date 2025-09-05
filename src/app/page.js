@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import AddressDisplay from "./components/copy";
-import IsolatedMarquee from "./components/IsoMarquee";
 import Link from "next/link";
 
 export default function Home() {
@@ -113,122 +112,172 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#15161B] text-white overflow-hidden relative">
+    <>
+      {/* Add CSS styles */}
+      <style jsx>{`
+        .marquee-container {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          overflow: hidden;
+          white-space: nowrap;
+          font-size: 0.875rem;
+          padding: 2px 0;
+          z-index: 0;
+        }
 
-      <div className="fixed inset-0 bg-black/20 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
-      </div>
+        .marquee-content {
+          display: inline-block;
+          animation: marquee 30s linear infinite;
+          padding-left: 100%;
+        }
 
-      {/* Isolated marquee component that won't re-render */}
-      <IsolatedMarquee />
+        @keyframes marquee {
+          0% {
+            transform: translate3d(0, 0, 0);
+          }
+          100% {
+            transform: translate3d(-100%, 0, 0);
+          }
+        }
 
-      <div className="fixed top-5 right-3 z-50 flex items-center">
-        <Link
-          href="https://x.com/powerpumpfun"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-white font-semibold text-base hover:text-gray-300 transition-colors pointer-events-auto px-2 py-1"
-        >
-          𝕏
-        </Link>
-        <div className="pointer-events-auto">
-          <AddressDisplay contractAddress={contractAddress} />
+        .marquee-content a {
+          color: #3b82f6;
+          text-decoration: underline;
+        }
+
+        .marquee-content a:hover {
+          color: #60a5fa;
+        }
+      `}</style>
+
+      <main className="min-h-screen bg-[#15161B] text-white overflow-hidden relative">
+
+        <div className="fixed inset-0 bg-black/20 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
         </div>
-      </div>
 
-      <div className="fixed bottom-3 right-3 z-50 flex items-center">
-        <Link
-          href="https://x.com/powerpumpfun"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-white underline text-base hover:text-gray-300 transition-colors pointer-events-auto px-2 py-1"
-        >
-          github
-        </Link>
-      </div>
-      
-      <div className="relative z-10 flex flex-col items-center p-4 sm:p-8">
-
-        <div className="text-center my-8">
-          <img 
-            src="/power.png" 
-            alt="Power" 
-            className="h-16 sm:h-24 mx-auto mb-4"
-          />
+        {/* Pure CSS Marquee - immune to React re-renders */}
+        <div className="marquee-container">
+          <div className="marquee-content">
+            Powerpump is a fully automated lottery protocol built on&nbsp;
+            <a href="https://pump.fun">pump.fun</a>
+            . Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;
+            Powerpump is a fully automated lottery protocol built on&nbsp;
+            <a href="https://pump.fun">pump.fun</a>
+            . Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;
+          </div>
         </div>
 
-        <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-6 sm:p-8 text-center mb-8 min-w-[280px]">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <p className="text-base font-semibold text-white">Next pump in</p>
-            {!isTimeSynced && (
-              <span className="text-xs text-yellow-400 bg-yellow-400/20 px-2 py-1 rounded">
-                Syncing...
-              </span>
-            )}
+        <div className="fixed top-5 right-3 z-50 flex items-center">
+          <Link
+            href="https://x.com/powerpumpfun"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white font-semibold text-base hover:text-gray-300 transition-colors pointer-events-auto px-2 py-1"
+          >
+            𝕏
+          </Link>
+          <div className="pointer-events-auto">
+            <AddressDisplay contractAddress={contractAddress} />
           </div>
-          <div className="bg-[#67D682] rounded-2xl p-4">
-            <h2 className="text-5xl sm:text-6xl font-bold">{countdown}s</h2>
+        </div>
+
+        <div className="fixed bottom-3 right-3 z-50 flex items-center">
+          <Link
+            href="https://x.com/powerpumpfun"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white underline text-base hover:text-gray-300 transition-colors pointer-events-auto px-2 py-1"
+          >
+            github
+          </Link>
+        </div>
+        
+        <div className="relative z-10 flex flex-col items-center p-4 sm:p-8">
+
+          <div className="text-center my-8">
+            <img 
+              src="/power.png" 
+              alt="Power" 
+              className="h-16 sm:h-24 mx-auto mb-4"
+            />
           </div>
-          {lastClaimTime && (
-            <div className="mt-3 hidden">
-              <p className="text-xs text-white/60">
-                Last distribution: {formatLastClaimTime(lastClaimTime)}
-              </p>
+
+          <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-6 sm:p-8 text-center mb-8 min-w-[280px]">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <p className="text-base font-semibold text-white">Next pump in</p>
+              {!isTimeSynced && (
+                <span className="text-xs text-yellow-400 bg-yellow-400/20 px-2 py-1 rounded">
+                  Syncing...
+                </span>
+              )}
             </div>
-          )}
-        </div>
-
-        <div className="w-full max-w-2xl">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <h2 className="text-2xl sm:text-3xl font-semibold">
-              Recent Winners
-            </h2>
-          </div>
-          
-          <div className="space-y-4">
-            {winners.length === 0 ? (
-              <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 text-center">
-                <p className="text-white/60 text-lg font-semibold">
-                  No winners yet...
+            <div className="bg-[#67D682] rounded-2xl p-4">
+              <h2 className="text-5xl sm:text-6xl font-bold">{countdown}s</h2>
+            </div>
+            {lastClaimTime && (
+              <div className="mt-3 hidden">
+                <p className="text-xs text-white/60">
+                  Last distribution: {formatLastClaimTime(lastClaimTime)}
                 </p>
               </div>
-            ) : (
-              winners.map((w, i) => (
-                <div
-                  key={i}
-                  className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-4 sm:p-6 hover:bg-black/50 transition-all duration-200"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex-1">
-                      <p className="font-mono text-sm sm:text-base font-bold text-white">
-                        {w.wallet.slice(0, 6)}...{w.wallet.slice(-6)}
-                      </p>
-                      <p className="text-xs text-white/60 mt-1">
-                        {w.created_at ? new Date(w.created_at).toLocaleString() : 'Invalid Date'}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl sm:text-2xl text-white">
-                        {w.amount.toFixed(4)} SOL
-                      </p>
-                      {w.signature && (
-                        <a
-                          href={`https://solscan.io/tx/${w.signature}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-400 hover:text-blue-300 underline font-semibold"
-                        >
-                          View on Solscan →
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
             )}
           </div>
+
+          <div className="w-full max-w-2xl">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <h2 className="text-2xl sm:text-3xl font-semibold">
+                Recent Winners
+              </h2>
+            </div>
+            
+            <div className="space-y-4">
+              {winners.length === 0 ? (
+                <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 text-center">
+                  <p className="text-white/60 text-lg font-semibold">
+                    No winners yet...
+                  </p>
+                </div>
+              ) : (
+                winners.map((w, i) => (
+                  <div
+                    key={i}
+                    className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-4 sm:p-6 hover:bg-black/50 transition-all duration-200"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex-1">
+                        <p className="font-mono text-sm sm:text-base font-bold text-white">
+                          {w.wallet.slice(0, 6)}...{w.wallet.slice(-6)}
+                        </p>
+                        <p className="text-xs text-white/60 mt-1">
+                          {w.created_at ? new Date(w.created_at).toLocaleString() : 'Invalid Date'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl sm:text-2xl text-white">
+                          {w.amount.toFixed(4)} SOL
+                        </p>
+                        {w.signature && (
+                          <a
+                            href={`https://solscan.io/tx/${w.signature}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-400 hover:text-blue-300 underline font-semibold"
+                          >
+                            View on Solscan →
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
