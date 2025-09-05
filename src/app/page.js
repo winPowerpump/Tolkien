@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AddressDisplay from "./components/copy";
-import IsolatedMarquee from "./components/IsolatedMarquee"; // Import the isolated marquee
+import IsolatedMarquee from "./components/IsoMarquee";
 import Link from "next/link";
 
 export default function Home() {
