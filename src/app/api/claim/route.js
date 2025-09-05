@@ -25,6 +25,34 @@ const WALLET = Keypair.fromSecretKey(bs58.decode(WALLET_SECRET));
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Helper function to get server time info
+function getServerTimeInfo() {
+  const now = new Date();
+  const secondsElapsed = now.getSeconds();
+  const millisecondsElapsed = now.getMilliseconds();
+  
+  // Calculate precise seconds until next minute
+  const totalElapsedMs = (secondsElapsed * 1000) + millisecondsElapsed;
+  const secondsUntilNext = (60000 - totalElapsedMs) / 1000;
+  
+  // Get the timestamp of the next scheduled distribution
+  const nextDistribution = new Date(now);
+  nextDistribution.setSeconds(0, 0);
+  nextDistribution.setMinutes(nextDistribution.getMinutes() + 1);
+  
+  // Get the timestamp of the last distribution
+  const lastDistribution = new Date(now);
+  lastDistribution.setSeconds(0, 0);
+  
+  return {
+    serverTime: now.toISOString(),
+    secondsUntilNext: Math.ceil(secondsUntilNext),
+    nextDistributionTime: nextDistribution.toISOString(),
+    lastDistributionTime: lastDistribution.toISOString(),
+    currentCycle: Math.floor(now.getTime() / 60000) // Unique ID for current minute
+  };
+}
+
 async function saveWinner(wallet, amount, signature) {
   const { data, error } = await supabase
     .from('winners')
@@ -230,25 +258,29 @@ export async function GET() {
       txSignature: sig,
       winner,
       winners,
+      ...getServerTimeInfo() // Include server time info
     });
   } catch (e) {
     console.error("Error in GET handler:", e);
     return NextResponse.json(
-      { success: false, error: e.message },
+      { success: false, error: e.message, ...getServerTimeInfo() },
       { status: 500 }
     );
   }
 }
 
-// Get winners from database
+// Get winners from database + server time info
 export async function POST() {
   try {
     const winners = await getRecentWinners(20);
-    return NextResponse.json({ winners });
+    return NextResponse.json({ 
+      winners,
+      ...getServerTimeInfo()
+    });
   } catch (e) {
     console.error("Error fetching winners:", e);
     return NextResponse.json(
-      { success: false, error: e.message },
+      { success: false, error: e.message, ...getServerTimeInfo() },
       { status: 500 }
     );
   }

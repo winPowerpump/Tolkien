@@ -10,67 +10,93 @@ export default function Home() {
   const [winners, setWinners] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lastClaimTime, setLastClaimTime] = useState(null);
+  const [serverTimeOffset, setServerTimeOffset] = useState(0); // Offset between client and server time
+  const [isTimeSynced, setIsTimeSynced] = useState(false);
 
   const contractAddress = "XXXpump";
 
-  // Calculate seconds until next minute
+  // Get server-synchronized time
+  const getServerTime = () => {
+    const localTime = new Date();
+    return new Date(localTime.getTime() + serverTimeOffset);
+  };
+
+  // Calculate seconds until next minute using server time
   const getSecondsUntilNextMinute = () => {
-    const now = new Date();
-    const secondsElapsed = now.getSeconds();
-    return 60 - secondsElapsed;
+    const serverTime = getServerTime();
+    const secondsElapsed = serverTime.getSeconds();
+    const millisecondsElapsed = serverTime.getMilliseconds();
+    
+    // Calculate precise countdown
+    const totalElapsedMs = (secondsElapsed * 1000) + millisecondsElapsed;
+    const millisecondsUntilNext = 60000 - totalElapsedMs;
+    return Math.ceil(millisecondsUntilNext / 1000);
   };
 
-  // Get the time of the last completed minute
-  const getLastClaimTime = () => {
-    const now = new Date();
-    const lastMinute = new Date(now);
-    lastMinute.setSeconds(0, 0); // Set to start of current minute
-    return lastMinute;
+  // Sync with server time
+  const syncServerTime = async () => {
+    try {
+      const requestStart = Date.now();
+      const res = await fetch("/api/claim", { method: "POST" });
+      const requestEnd = Date.now();
+      const data = await res.json();
+      
+      if (data.serverTime) {
+        const serverTime = new Date(data.serverTime).getTime();
+        const networkLatency = (requestEnd - requestStart) / 2; // Estimate round-trip latency
+        const adjustedServerTime = serverTime + networkLatency;
+        const localTime = requestEnd;
+        
+        // Calculate the offset between server and client time
+        const offset = adjustedServerTime - localTime;
+        setServerTimeOffset(offset);
+        setIsTimeSynced(true);
+        
+        // Update countdown immediately with server time
+        const secondsLeft = data.secondsUntilNext || getSecondsUntilNextMinute();
+        setCountdown(secondsLeft);
+        
+        // Update winners
+        setWinners(data.winners || []);
+        
+        console.log(`Time synced. Offset: ${offset}ms, Countdown: ${secondsLeft}s`);
+      }
+    } catch (e) {
+      console.error("Failed to sync server time:", e);
+      // Fallback to local time if server sync fails
+      setIsTimeSynced(false);
+    }
   };
 
+  // Initial sync on component mount
   useEffect(() => {
-    // Initialize countdown to sync with actual cron timing
-    const initialCountdown = getSecondsUntilNextMinute();
-    setCountdown(initialCountdown);
-    setLastClaimTime(getLastClaimTime());
+    syncServerTime();
+  }, []);
+
+  // Update countdown every second
+  useEffect(() => {
+    if (!isTimeSynced) return;
 
     const interval = setInterval(() => {
       const secondsLeft = getSecondsUntilNextMinute();
       setCountdown(secondsLeft);
       
-      // Update last claim time when we hit a new minute
-      if (secondsLeft === 60 || secondsLeft === 0) {
-        setLastClaimTime(getLastClaimTime());
+      // When we hit a new minute (countdown resets), sync with server again
+      if (secondsLeft >= 59) {
+        setTimeout(() => {
+          syncServerTime(); // Re-sync and fetch new winners
+        }, 2000); // Wait 2 seconds for cron job to complete
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isTimeSynced, serverTimeOffset]);
 
-  async function fetchWinners() {
-    try {
-      const res = await fetch("/api/claim", { method: "POST" });
-      const data = await res.json();
-      setWinners(data.winners || []);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
+  // Periodic winner fetching and re-sync
   useEffect(() => {
-    fetchWinners();
-    
-    // Fetch winners every 30 seconds, but also immediately after each minute mark
     const interval = setInterval(() => {
-      fetchWinners();
-      
-      // If we just passed a minute mark, fetch again after a few seconds
-      // to catch the new winner from the cron job
-      const now = new Date();
-      if (now.getSeconds() <= 5) {
-        setTimeout(fetchWinners, 3000);
-      }
-    }, 10000);
+      syncServerTime(); // This also fetches winners
+    }, 30000); // Re-sync every 30 seconds to maintain accuracy
 
     return () => clearInterval(interval);
   }, []);
@@ -80,7 +106,7 @@ export default function Home() {
     try {
       const res = await fetch("/api/claim");
       await res.json();
-      fetchWinners();
+      syncServerTime(); // Re-sync after manual claim
     } catch (e) {
       console.error(e);
     }
@@ -142,6 +168,11 @@ export default function Home() {
         <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-6 sm:p-8 text-center mb-8 min-w-[280px]">
           <div className="flex items-center justify-center gap-2 mb-3">
             <p className="text-base font-semibold text-white">Next pump in</p>
+            {!isTimeSynced && (
+              <span className="text-xs text-yellow-400 bg-yellow-400/20 px-2 py-1 rounded">
+                Syncing...
+              </span>
+            )}
           </div>
           <div className="bg-[#67D682] rounded-2xl p-4">
             <h2 className="text-5xl sm:text-6xl font-bold">{countdown}s</h2>
