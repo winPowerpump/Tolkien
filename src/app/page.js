@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import AddressDisplay from "./components/copy";
-import CountdownTimer from "./components/CountdownTimer";
+import CountdownTimer from "./components/Timer";
 import Link from "next/link";
 
 export default function Home() {
