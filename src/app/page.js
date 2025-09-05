@@ -177,6 +177,11 @@ export default function Home() {
           <div className="bg-[#67D682] rounded-2xl p-4">
             <h2 className="text-5xl sm:text-6xl font-bold">{countdown}s</h2>
           </div>
+          <div className="mt-3">
+            <p className="text-xs text-white/60 mx-[10%]">
+              *Pump reward takes about ~40sec. to get to winner
+            </p>
+          </div>
           {lastClaimTime && (
             <div className="mt-3 hidden">
               <p className="text-xs text-white/60">
