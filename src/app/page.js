@@ -14,7 +14,7 @@ export default function Home() {
   const [isTimeSynced, setIsTimeSynced] = useState(false);
   const [noHolders, setNoHolders] = useState(false); // New state for empty token holders
 
-  const contractAddress = "XXXpump";
+  const contractAddress = "XXXXpump";
 
   // Get server-synchronized time
   const getServerTime = () => {
