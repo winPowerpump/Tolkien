@@ -54,13 +54,14 @@ export default function Home() {
     syncServerTime();
   }, [syncServerTime]);
 
-  // Periodic winner fetching and re-sync
+  // Periodic winner fetching and re-sync - increased interval for 5-minute distributions
   useEffect(() => {
     if (noHolders) return;
     
+    // Changed from 30 seconds to 2 minutes since distributions are now every 5 minutes
     const interval = setInterval(() => {
       syncServerTime();
-    }, 30000);
+    }, 120000); // 2 minutes instead of 30 seconds
 
     return () => clearInterval(interval);
   }, [noHolders, syncServerTime]);

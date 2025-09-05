@@ -25,31 +25,42 @@ const WALLET = Keypair.fromSecretKey(bs58.decode(WALLET_SECRET));
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Helper function to get server time info
+// Helper function to get server time info for 5-minute cycles
 function getServerTimeInfo() {
   const now = new Date();
-  const secondsElapsed = now.getSeconds();
-  const millisecondsElapsed = now.getMilliseconds();
+  const minutes = now.getMinutes();
+  const seconds = now.getSeconds();
+  const milliseconds = now.getMilliseconds();
   
-  // Calculate precise seconds until next minute
-  const totalElapsedMs = (secondsElapsed * 1000) + millisecondsElapsed;
-  const secondsUntilNext = (60000 - totalElapsedMs) / 1000;
+  // Calculate minutes elapsed in the current 5-minute cycle
+  const minutesInCycle = minutes % 5;
   
-  // Get the timestamp of the next scheduled distribution
+  // Calculate total elapsed time in the current 5-minute cycle
+  const totalElapsedMs = (minutesInCycle * 60 * 1000) + (seconds * 1000) + milliseconds;
+  
+  // Calculate milliseconds until the next 5-minute mark
+  const millisecondsUntilNext = (5 * 60 * 1000) - totalElapsedMs;
+  const secondsUntilNext = millisecondsUntilNext / 1000;
+  
+  // Get the timestamp of the next scheduled distribution (next 5-minute mark)
   const nextDistribution = new Date(now);
   nextDistribution.setSeconds(0, 0);
-  nextDistribution.setMinutes(nextDistribution.getMinutes() + 1);
+  const currentMinute = nextDistribution.getMinutes();
+  const nextFiveMinuteMark = Math.ceil((currentMinute + 1) / 5) * 5;
+  nextDistribution.setMinutes(nextFiveMinuteMark);
   
-  // Get the timestamp of the last distribution
+  // Get the timestamp of the last distribution (previous 5-minute mark)
   const lastDistribution = new Date(now);
   lastDistribution.setSeconds(0, 0);
+  const lastFiveMinuteMark = Math.floor(currentMinute / 5) * 5;
+  lastDistribution.setMinutes(lastFiveMinuteMark);
   
   return {
     serverTime: now.toISOString(),
     secondsUntilNext: Math.ceil(secondsUntilNext),
     nextDistributionTime: nextDistribution.toISOString(),
     lastDistributionTime: lastDistribution.toISOString(),
-    currentCycle: Math.floor(now.getTime() / 60000), // Unique ID for current minute
+    currentCycle: Math.floor(now.getTime() / (5 * 60 * 1000)), // Unique ID for current 5-minute cycle
     tokenMintEmpty: !TOKEN_MINT || TOKEN_MINT.trim() === "" // Add flag for empty token mint
   };
 }
