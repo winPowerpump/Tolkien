@@ -113,61 +113,51 @@ export default function Home() {
 
   return (
     <>
-      {/* Add CSS styles */}
-      <style jsx>{`
-        .marquee-container {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          overflow: hidden;
-          white-space: nowrap;
-          font-size: 0.875rem;
-          padding: 2px 0;
-          z-index: 0;
-        }
-
-        .marquee-content {
-          display: inline-block;
-          animation: marquee 30s linear infinite;
-          padding-left: 100%;
-        }
-
-        @keyframes marquee {
-          0% {
-            transform: translate3d(0, 0, 0);
-          }
-          100% {
-            transform: translate3d(-100%, 0, 0);
-          }
-        }
-
-        .marquee-content a {
-          color: #3b82f6;
-          text-decoration: underline;
-        }
-
-        .marquee-content a:hover {
-          color: #60a5fa;
-        }
-      `}</style>
+      {/* Static marquee that won't be affected by React re-renders */}
+      <div 
+        id="static-marquee" 
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          fontSize: '0.875rem',
+          padding: '2px 0',
+          zIndex: 0,
+        }}
+        dangerouslySetInnerHTML={{
+          __html: `
+            <div style="
+              display: inline-block;
+              animation: marquee 30s linear infinite;
+              padding-left: 100%;
+            ">
+              Powerpump is a fully automated lottery protocol built on&nbsp;
+              <a href="https://pump.fun" style="color: #3b82f6; text-decoration: underline;">pump.fun</a>
+              . Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;
+              Powerpump is a fully automated lottery protocol built on&nbsp;
+              <a href="https://pump.fun" style="color: #3b82f6; text-decoration: underline;">pump.fun</a>
+              . Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;
+            </div>
+            <style>
+              @keyframes marquee {
+                0% { transform: translate3d(0, 0, 0); }
+                100% { transform: translate3d(-100%, 0, 0); }
+              }
+              #static-marquee a:hover {
+                color: #60a5fa !important;
+              }
+            </style>
+          `
+        }}
+      />
 
       <main className="min-h-screen bg-[#15161B] text-white overflow-hidden relative">
 
         <div className="fixed inset-0 bg-black/20 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
-        </div>
-
-        {/* Pure CSS Marquee - immune to React re-renders */}
-        <div className="marquee-container">
-          <div className="marquee-content">
-            Powerpump is a fully automated lottery protocol built on&nbsp;
-            <a href="https://pump.fun">pump.fun</a>
-            . Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;
-            Powerpump is a fully automated lottery protocol built on&nbsp;
-            <a href="https://pump.fun">pump.fun</a>
-            . Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;
-          </div>
         </div>
 
         <div className="fixed top-5 right-3 z-50 flex items-center">
