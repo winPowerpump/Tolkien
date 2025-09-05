@@ -51,22 +51,23 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-[#15161B] text-white overflow-hidden">
+    <main className="min-h-screen bg-[#15161B] text-white overflow-hidden relative">
       {/* Background pattern */}
-      <div className="absolute inset-0 bg-black/20">
+      <div className="absolute inset-0 bg-black/20 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
       </div>
 
-      <div className="flex justify-between items-start mb-4 absolute top-3 right-3">
-        <div className="flex items-center gap-1">
-          <Link
-            href="https://x.com/powerpumpfun"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white font-semibold text-base mt-0"
-          >
-            𝕏
-          </Link>
+      {/* Fixed positioned clickable elements */}
+      <div className="fixed top-3 right-3 z-50 flex items-center">
+        <Link
+          href="https://x.com/powerpumpfun"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white font-semibold text-base hover:text-gray-300 transition-colors pointer-events-auto bg-black/20 backdrop-blur-sm rounded-lg px-2 py-1"
+        >
+          𝕏
+        </Link>
+        <div className="pointer-events-auto">
           <AddressDisplay contractAddress={contractAddress} />
         </div>
       </div>
@@ -90,8 +91,6 @@ export default function Home() {
             <h2 className="text-5xl sm:text-6xl font-bold">{countdown}s</h2>
           </div>
         </div>
-
-
 
         {/* Winners Section */}
         <div className="w-full max-w-2xl">
