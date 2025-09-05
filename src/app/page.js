@@ -104,13 +104,24 @@ export default function Home() {
           href="https://x.com/powerpumpfun"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-white font-semibold text-base hover:text-gray-300 transition-colors pointer-events-auto bg-black/20 backdrop-blur-sm rounded-lg px-2 py-1"
+          className="text-white font-semibold text-base hover:text-gray-300 transition-colors pointer-events-auto px-2 py-1"
         >
           𝕏
         </Link>
         <div className="pointer-events-auto">
           <AddressDisplay contractAddress={contractAddress} />
         </div>
+      </div>
+
+      <div className="fixed bottom-3 right-3 z-50 flex items-center">
+        <Link
+          href="https://x.com/powerpumpfun"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white underline text-base hover:text-gray-300 transition-colors pointer-events-auto px-2 py-1"
+        >
+          github
+        </Link>
       </div>
       
       <div className="relative z-10 flex flex-col items-center p-4 sm:p-8">
