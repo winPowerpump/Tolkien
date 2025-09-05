@@ -132,8 +132,6 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
       </div>
 
-      <AnimatedMarquee />
-
       <div className="fixed top-5 right-3 z-50 flex items-center">
         <Link
           href="https://x.com/powerpumpfun"
