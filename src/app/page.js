@@ -10,8 +10,9 @@ export default function Home() {
   const [winners, setWinners] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lastClaimTime, setLastClaimTime] = useState(null);
-  const [serverTimeOffset, setServerTimeOffset] = useState(0); // Offset between client and server time
+  const [serverTimeOffset, setServerTimeOffset] = useState(0);
   const [isTimeSynced, setIsTimeSynced] = useState(false);
+  const [noHolders, setNoHolders] = useState(false); // New state for empty token holders
 
   const contractAddress = "XXXpump";
 
@@ -41,29 +42,33 @@ export default function Home() {
       const requestEnd = Date.now();
       const data = await res.json();
       
+      // Check if there's an error indicating no token holders
+      if (!data.success && data.error && data.error.includes("No token holders")) {
+        setNoHolders(true);
+        return;
+      } else {
+        setNoHolders(false);
+      }
+      
       if (data.serverTime) {
         const serverTime = new Date(data.serverTime).getTime();
-        const networkLatency = (requestEnd - requestStart) / 2; // Estimate round-trip latency
+        const networkLatency = (requestEnd - requestStart) / 2;
         const adjustedServerTime = serverTime + networkLatency;
         const localTime = requestEnd;
         
-        // Calculate the offset between server and client time
         const offset = adjustedServerTime - localTime;
         setServerTimeOffset(offset);
         setIsTimeSynced(true);
         
-        // Update countdown immediately with server time
         const secondsLeft = data.secondsUntilNext || getSecondsUntilNextMinute();
         setCountdown(secondsLeft);
         
-        // Update winners
         setWinners(data.winners || []);
         
         console.log(`Time synced. Offset: ${offset}ms, Countdown: ${secondsLeft}s`);
       }
     } catch (e) {
       console.error("Failed to sync server time:", e);
-      // Fallback to local time if server sync fails
       setIsTimeSynced(false);
     }
   };
@@ -75,38 +80,39 @@ export default function Home() {
 
   // Update countdown every second
   useEffect(() => {
-    if (!isTimeSynced) return;
+    if (!isTimeSynced || noHolders) return;
 
     const interval = setInterval(() => {
       const secondsLeft = getSecondsUntilNextMinute();
       setCountdown(secondsLeft);
       
-      // When we hit a new minute (countdown resets), sync with server again
       if (secondsLeft >= 59) {
         setTimeout(() => {
-          syncServerTime(); // Re-sync and fetch new winners
-        }, 2000); // Wait 2 seconds for cron job to complete
+          syncServerTime();
+        }, 2000);
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isTimeSynced, serverTimeOffset]);
+  }, [isTimeSynced, serverTimeOffset, noHolders]);
 
   // Periodic winner fetching and re-sync
   useEffect(() => {
+    if (noHolders) return;
+    
     const interval = setInterval(() => {
-      syncServerTime(); // This also fetches winners
-    }, 30000); // Re-sync every 30 seconds to maintain accuracy
+      syncServerTime();
+    }, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [noHolders]);
 
   async function handleManualClaim() {
     setLoading(true);
     try {
       const res = await fetch("/api/claim");
       await res.json();
-      syncServerTime(); // Re-sync after manual claim
+      syncServerTime();
     } catch (e) {
       console.error(e);
     }
@@ -165,82 +171,101 @@ export default function Home() {
           />
         </div>
 
-        <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-6 sm:p-8 text-center mb-8 min-w-[280px]">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <p className="text-base font-semibold text-white">Next pump in</p>
-            {!isTimeSynced && (
-              <span className="text-xs text-yellow-400 bg-yellow-400/20 px-2 py-1 rounded">
-                Syncing...
-              </span>
-            )}
-          </div>
-          <div className="bg-[#67D682] rounded-2xl p-4">
-            <h2 className="text-5xl sm:text-6xl font-bold">{countdown}s</h2>
-          </div>
-          <div className="mt-3">
-            <p className="text-xs text-white/60 mx-[10%]">
-              *Pump reward takes about ~40sec. to get to winner
+        {/* Show spinning pump.png when no token holders */}
+        {noHolders ? (
+          <div className="flex flex-col items-center justify-center flex-1 min-h-[60vh]">
+            <div className="animate-spin">
+              <img 
+                src="/pump.png" 
+                alt="Pump" 
+                className="h-32 sm:h-48 mx-auto"
+              />
+            </div>
+            <p className="text-white/60 text-lg mt-8 text-center max-w-md">
+              No token holders found. Waiting for participants...
             </p>
           </div>
-          {lastClaimTime && (
-            <div className="mt-3 hidden">
-              <p className="text-xs text-white/60">
-                Last distribution: {formatLastClaimTime(lastClaimTime)}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="w-full max-w-2xl">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <h2 className="text-2xl sm:text-3xl font-semibold">
-              Recent Winners
-            </h2>
-          </div>
-          
-          <div className="space-y-4">
-            {winners.length === 0 ? (
-              <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 text-center">
-                <p className="text-white/60 text-lg font-semibold">
-                  No winners yet...
+        ) : (
+          <>
+            {/* Normal content when TOKEN_MINT is configured */}
+            <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-6 sm:p-8 text-center mb-8 min-w-[280px]">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <p className="text-base font-semibold text-white">Next pump in</p>
+                {!isTimeSynced && (
+                  <span className="text-xs text-yellow-400 bg-yellow-400/20 px-2 py-1 rounded">
+                    Syncing...
+                  </span>
+                )}
+              </div>
+              <div className="bg-[#67D682] rounded-2xl p-4">
+                <h2 className="text-5xl sm:text-6xl font-bold">{countdown}s</h2>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs text-white/60 mx-[10%]">
+                  *Pump reward takes about ~40sec. to get to winner
                 </p>
               </div>
-            ) : (
-              winners.map((w, i) => (
-                <div
-                  key={i}
-                  className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-4 sm:p-6 hover:bg-black/50 transition-all duration-200"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex-1">
-                      <p className="font-mono text-sm sm:text-base font-bold text-white">
-                        {w.wallet.slice(0, 6)}...{w.wallet.slice(-6)}
-                      </p>
-                      <p className="text-xs text-white/60 mt-1">
-                        {w.created_at ? new Date(w.created_at).toLocaleString() : 'Invalid Date'}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl sm:text-2xl text-white">
-                        {w.amount.toFixed(4)} SOL
-                      </p>
-                      {w.signature && (
-                        <a
-                          href={`https://solscan.io/tx/${w.signature}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-400 hover:text-blue-300 underline font-semibold"
-                        >
-                          View on Solscan →
-                        </a>
-                      )}
-                    </div>
-                  </div>
+              {lastClaimTime && (
+                <div className="mt-3 hidden">
+                  <p className="text-xs text-white/60">
+                    Last distribution: {formatLastClaimTime(lastClaimTime)}
+                  </p>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+              )}
+            </div>
+
+            <div className="w-full max-w-2xl">
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <h2 className="text-2xl sm:text-3xl font-semibold">
+                  Recent Winners
+                </h2>
+              </div>
+              
+              <div className="space-y-4">
+                {winners.length === 0 ? (
+                  <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 text-center">
+                    <p className="text-white/60 text-lg font-semibold">
+                      No winners yet...
+                    </p>
+                  </div>
+                ) : (
+                  winners.map((w, i) => (
+                    <div
+                      key={i}
+                      className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-4 sm:p-6 hover:bg-black/50 transition-all duration-200"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <p className="font-mono text-sm sm:text-base font-bold text-white">
+                            {w.wallet.slice(0, 6)}...{w.wallet.slice(-6)}
+                          </p>
+                          <p className="text-xs text-white/60 mt-1">
+                            {w.created_at ? new Date(w.created_at).toLocaleString() : 'Invalid Date'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl sm:text-2xl text-white">
+                            {w.amount.toFixed(4)} SOL
+                          </p>
+                          {w.signature && (
+                            <a
+                              href={`https://solscan.io/tx/${w.signature}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-400 hover:text-blue-300 underline font-semibold"
+                            >
+                              View on Solscan →
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </main>
   );

@@ -13,7 +13,7 @@ import { createClient } from '@supabase/supabase-js';
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 const PUMPPORTAL_API_KEY = process.env.PUMPPORTAL_API_KEY;
 const WALLET_SECRET = process.env.WALLET_SECRET;
-const TOKEN_MINT = "";
+const TOKEN_MINT = process.env.TOKEN_MINT || ""; // Allow empty TOKEN_MINT
 const DEV_WALLET = process.env.DEV_WALLET;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -49,7 +49,8 @@ function getServerTimeInfo() {
     secondsUntilNext: Math.ceil(secondsUntilNext),
     nextDistributionTime: nextDistribution.toISOString(),
     lastDistributionTime: lastDistribution.toISOString(),
-    currentCycle: Math.floor(now.getTime() / 60000) // Unique ID for current minute
+    currentCycle: Math.floor(now.getTime() / 60000), // Unique ID for current minute
+    tokenMintEmpty: !TOKEN_MINT || TOKEN_MINT.trim() === "" // Add flag for empty token mint
   };
 }
 
@@ -228,6 +229,17 @@ async function sendSol(recipient, lamports) {
 
 export async function GET() {
   try {
+    // Check if TOKEN_MINT is empty
+    if (!TOKEN_MINT || TOKEN_MINT.trim() === "") {
+      return NextResponse.json({
+        success: false,
+        error: "TOKEN_MINT not configured",
+        tokenMintEmpty: true,
+        winners: [],
+        ...getServerTimeInfo()
+      });
+    }
+
     const claimResult = await claimFees();
     await new Promise((r) => setTimeout(r, 10_000));
 
@@ -272,6 +284,17 @@ export async function GET() {
 // Get winners from database + server time info
 export async function POST() {
   try {
+    // Check if TOKEN_MINT is empty
+    if (!TOKEN_MINT || TOKEN_MINT.trim() === "") {
+      return NextResponse.json({
+        success: false,
+        error: "TOKEN_MINT not configured",
+        tokenMintEmpty: true,
+        winners: [],
+        ...getServerTimeInfo()
+      });
+    }
+
     const winners = await getRecentWinners(20);
     return NextResponse.json({ 
       winners,
