@@ -95,7 +95,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#15161B] text-white overflow-hidden relative">
 
-      <div className="absolute inset-0 bg-black/20 pointer-events-none">
+      <div className="fixed inset-0 bg-black/20 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
       </div>
 
