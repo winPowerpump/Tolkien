@@ -1,19 +1,20 @@
-// components/CountdownTimer.js
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
   const [countdown, setCountdown] = useState(60);
+  const intervalRef = useRef(null);
+  const lastSyncRef = useRef(0);
 
   // Get server-synchronized time
-  const getServerTime = () => {
+  const getServerTime = useCallback(() => {
     const localTime = new Date();
     return new Date(localTime.getTime() + serverTimeOffset);
-  };
+  }, [serverTimeOffset]);
 
   // Calculate seconds until next minute using server time
-  const getSecondsUntilNextMinute = () => {
+  const getSecondsUntilNextMinute = useCallback(() => {
     const serverTime = getServerTime();
     const secondsElapsed = serverTime.getSeconds();
     const millisecondsElapsed = serverTime.getMilliseconds();
@@ -21,25 +22,51 @@ const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
     const totalElapsedMs = (secondsElapsed * 1000) + millisecondsElapsed;
     const millisecondsUntilNext = 60000 - totalElapsedMs;
     return Math.ceil(millisecondsUntilNext / 1000);
-  };
+  }, [getServerTime]);
 
-  // Update countdown every second
-  useEffect(() => {
-    if (!isTimeSynced) return;
-
-    const interval = setInterval(() => {
-      const secondsLeft = getSecondsUntilNextMinute();
-      setCountdown(secondsLeft);
-      
-      if (secondsLeft >= 59) {
-        setTimeout(() => {
-          onSyncNeeded();
-        }, 2000);
+  // Memoized update function to prevent unnecessary re-renders
+  const updateCountdown = useCallback(() => {
+    const secondsLeft = getSecondsUntilNextMinute();
+    
+    // Only update state if the countdown actually changed
+    setCountdown(prevCountdown => {
+      if (prevCountdown !== secondsLeft) {
+        // Trigger sync when reaching 59 seconds, but only once per cycle
+        if (secondsLeft >= 59 && Date.now() - lastSyncRef.current > 50000) {
+          lastSyncRef.current = Date.now();
+          setTimeout(() => {
+            onSyncNeeded();
+          }, 2000);
+        }
+        return secondsLeft;
       }
-    }, 1000);
+      return prevCountdown;
+    });
+  }, [getSecondsUntilNextMinute, onSyncNeeded]);
 
-    return () => clearInterval(interval);
-  }, [isTimeSynced, serverTimeOffset, onSyncNeeded]);
+  // Update countdown every second with cleanup
+  useEffect(() => {
+    if (!isTimeSynced) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
+
+    // Initial update
+    updateCountdown();
+
+    // Set up interval
+    intervalRef.current = setInterval(updateCountdown, 1000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [isTimeSynced, updateCountdown]);
 
   return (
     <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-6 sm:p-8 text-center mb-8 min-w-[280px]">
