@@ -57,7 +57,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
       </div>
 
-      <div className="flex justify-between items-start mb-4 absolute top-5 right-1">
+      <div className="flex justify-between items-start mb-4 absolute top-3 right-3">
         <div className="flex items-center gap-1">
           <Link
             href="https://x.com/powerpumpfun"
