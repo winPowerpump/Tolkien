@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 
 const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
-  const [countdown, setCountdown] = useState(60);
+  const [countdown, setCountdown] = useState(300); // Changed from 60 to 300 (5 minutes)
 
   // Get server-synchronized time
   const getServerTime = () => {
@@ -12,15 +12,30 @@ const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
     return new Date(localTime.getTime() + serverTimeOffset);
   };
 
-  // Calculate seconds until next minute using server time
-  const getSecondsUntilNextMinute = () => {
+  // Calculate seconds until next 5-minute interval using server time
+  const getSecondsUntilNext5Minutes = () => {
     const serverTime = getServerTime();
-    const secondsElapsed = serverTime.getSeconds();
-    const millisecondsElapsed = serverTime.getMilliseconds();
+    const minutes = serverTime.getMinutes();
+    const seconds = serverTime.getSeconds();
+    const milliseconds = serverTime.getMilliseconds();
     
-    const totalElapsedMs = (secondsElapsed * 1000) + millisecondsElapsed;
-    const millisecondsUntilNext = 60000 - totalElapsedMs;
+    // Calculate minutes elapsed in the current 5-minute cycle
+    const minutesInCycle = minutes % 5;
+    
+    // Calculate total elapsed time in the current 5-minute cycle
+    const totalElapsedMs = (minutesInCycle * 60 * 1000) + (seconds * 1000) + milliseconds;
+    
+    // Calculate milliseconds until the next 5-minute mark
+    const millisecondsUntilNext = (5 * 60 * 1000) - totalElapsedMs;
+    
     return Math.ceil(millisecondsUntilNext / 1000);
+  };
+
+  // Format countdown display (mm:ss)
+  const formatCountdown = (totalSeconds) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   // Update countdown every second
@@ -28,10 +43,11 @@ const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
     if (!isTimeSynced) return;
 
     const interval = setInterval(() => {
-      const secondsLeft = getSecondsUntilNextMinute();
+      const secondsLeft = getSecondsUntilNext5Minutes();
       setCountdown(secondsLeft);
       
-      if (secondsLeft >= 59) {
+      // Trigger sync when we're close to the next distribution (299+ seconds means we just passed a 5-minute mark)
+      if (secondsLeft >= 299) {
         setTimeout(() => {
           onSyncNeeded();
         }, 2000);
@@ -52,7 +68,7 @@ const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
         )}
       </div>
       <div className="bg-[#67D682] rounded-2xl p-4">
-        <h2 className="text-5xl sm:text-6xl font-bold">{countdown}s</h2>
+        <h2 className="text-5xl sm:text-6xl font-bold">{formatCountdown(countdown)}</h2>
       </div>
       <div className="mt-3">
         <p className="text-xs text-white/60 mx-[10%]">
