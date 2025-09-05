@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import AddressDisplay from "./components/copy";
 import Link from "next/link";
 import Marquee from "react-fast-marquee";
@@ -10,10 +10,22 @@ export default function Home() {
   const [winners, setWinners] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lastClaimTime, setLastClaimTime] = useState(null);
-  const [serverTimeOffset, setServerTimeOffset] = useState(0); // Offset between client and server time
+  const [serverTimeOffset, setServerTimeOffset] = useState(0);
   const [isTimeSynced, setIsTimeSynced] = useState(false);
 
   const contractAddress = "XXXpump";
+
+  // Memoize the marquee content to prevent re-renders
+  const marqueeContent = useMemo(() => (
+    <>
+      Powerpump is a fully automated lottery protocol built on&nbsp;
+      <a className="text-blue-500 underline" href="https://pump.fun">pump.fun</a>
+      . Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;
+      Powerpump is a fully automated lottery protocol built on&nbsp;
+      <a className="text-blue-500 underline" href="https://pump.fun">pump.fun</a>
+      . Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;
+    </>
+  ), []);
 
   // Get server-synchronized time
   const getServerTime = () => {
@@ -27,7 +39,6 @@ export default function Home() {
     const secondsElapsed = serverTime.getSeconds();
     const millisecondsElapsed = serverTime.getMilliseconds();
     
-    // Calculate precise countdown
     const totalElapsedMs = (secondsElapsed * 1000) + millisecondsElapsed;
     const millisecondsUntilNext = 60000 - totalElapsedMs;
     return Math.ceil(millisecondsUntilNext / 1000);
@@ -43,27 +54,23 @@ export default function Home() {
       
       if (data.serverTime) {
         const serverTime = new Date(data.serverTime).getTime();
-        const networkLatency = (requestEnd - requestStart) / 2; // Estimate round-trip latency
+        const networkLatency = (requestEnd - requestStart) / 2;
         const adjustedServerTime = serverTime + networkLatency;
         const localTime = requestEnd;
         
-        // Calculate the offset between server and client time
         const offset = adjustedServerTime - localTime;
         setServerTimeOffset(offset);
         setIsTimeSynced(true);
         
-        // Update countdown immediately with server time
         const secondsLeft = data.secondsUntilNext || getSecondsUntilNextMinute();
         setCountdown(secondsLeft);
         
-        // Update winners
         setWinners(data.winners || []);
         
         console.log(`Time synced. Offset: ${offset}ms, Countdown: ${secondsLeft}s`);
       }
     } catch (e) {
       console.error("Failed to sync server time:", e);
-      // Fallback to local time if server sync fails
       setIsTimeSynced(false);
     }
   };
@@ -81,11 +88,10 @@ export default function Home() {
       const secondsLeft = getSecondsUntilNextMinute();
       setCountdown(secondsLeft);
       
-      // When we hit a new minute (countdown resets), sync with server again
       if (secondsLeft >= 59) {
         setTimeout(() => {
-          syncServerTime(); // Re-sync and fetch new winners
-        }, 2000); // Wait 2 seconds for cron job to complete
+          syncServerTime();
+        }, 2000);
       }
     }, 1000);
 
@@ -95,8 +101,8 @@ export default function Home() {
   // Periodic winner fetching and re-sync
   useEffect(() => {
     const interval = setInterval(() => {
-      syncServerTime(); // This also fetches winners
-    }, 30000); // Re-sync every 30 seconds to maintain accuracy
+      syncServerTime();
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);
@@ -106,14 +112,13 @@ export default function Home() {
     try {
       const res = await fetch("/api/claim");
       await res.json();
-      syncServerTime(); // Re-sync after manual claim
+      syncServerTime();
     } catch (e) {
       console.error(e);
     }
     setLoading(false);
   }
 
-  // Format the last claim time for display
   const formatLastClaimTime = (time) => {
     if (!time) return "Unknown";
     return time.toLocaleTimeString();
@@ -126,8 +131,11 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
       </div>
 
-      <div className="absolute top-0 index-0 w-screen text-sm py-[2px]">
-        <Marquee speed={100}>Powerpump is a fully automated lottery protocol built on&nbsp;<a className="text-blue-500 underline" href="https://pump.fun">pump.fun</a>. Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;Powerpump is a fully automated lottery protocol built on&nbsp;<a className="text-blue-500 underline" href="https://pump.fun">pump.fun</a>. Users who hold the $POWER token are automatically eligible for the pump jackpot. Users have a weight assigned to them based on how much they hold relative to others. Fully transparent, equitable, and fair. Happy pumping!&nbsp;</Marquee>
+      {/* Separate the marquee into its own component layer */}
+      <div className="absolute top-0 index-0 w-screen text-sm py-[2px] z-0">
+        <Marquee speed={100} key="marquee">
+          {marqueeContent}
+        </Marquee>
       </div>
 
       <div className="fixed top-5 right-3 z-50 flex items-center">
