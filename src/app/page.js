@@ -14,7 +14,7 @@ export default function Home() {
   const [noHolders, setNoHolders] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const contractAddress = "XXXXpump";
+  const contractAddress = "FBz2tNoqQ9xenq3qeCByDVoMh1BsZcY1itLf5vobpump";
 
   // Use useCallback to prevent unnecessary re-renders
   const syncServerTime = useCallback(async () => {
