@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 
 const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
-  const [countdown, setCountdown] = useState(900); // Changed from 300 to 900 (15 minutes)
+  const [countdown, setCountdown] = useState(600); // Changed from 900 to 600 (10 minutes)
 
   // Get server-synchronized time
   const getServerTime = () => {
@@ -12,21 +12,21 @@ const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
     return new Date(localTime.getTime() + serverTimeOffset);
   };
 
-  // Calculate seconds until next 15-minute interval using server time
-  const getSecondsUntilNext15Minutes = () => {
+  // Calculate seconds until next 10-minute interval using server time
+  const getSecondsUntilNext10Minutes = () => {
     const serverTime = getServerTime();
     const minutes = serverTime.getMinutes();
     const seconds = serverTime.getSeconds();
     const milliseconds = serverTime.getMilliseconds();
     
-    // Calculate minutes elapsed in the current 15-minute cycle
-    const minutesInCycle = minutes % 15;
+    // Calculate minutes elapsed in the current 10-minute cycle
+    const minutesInCycle = minutes % 10;
     
-    // Calculate total elapsed time in the current 15-minute cycle
+    // Calculate total elapsed time in the current 10-minute cycle
     const totalElapsedMs = (minutesInCycle * 60 * 1000) + (seconds * 1000) + milliseconds;
     
-    // Calculate milliseconds until the next 15-minute mark
-    const millisecondsUntilNext = (15 * 60 * 1000) - totalElapsedMs;
+    // Calculate milliseconds until the next 10-minute mark
+    const millisecondsUntilNext = (10 * 60 * 1000) - totalElapsedMs;
     
     return Math.ceil(millisecondsUntilNext / 1000);
   };
@@ -43,11 +43,11 @@ const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
     if (!isTimeSynced) return;
 
     const interval = setInterval(() => {
-      const secondsLeft = getSecondsUntilNext15Minutes();
+      const secondsLeft = getSecondsUntilNext10Minutes();
       setCountdown(secondsLeft);
       
-      // Trigger sync when we're close to the next distribution (899+ seconds means we just passed a 15-minute mark)
-      if (secondsLeft >= 899) {
+      // Trigger sync when we're close to the next distribution (599+ seconds means we just passed a 10-minute mark)
+      if (secondsLeft >= 599) {
         setTimeout(() => {
           onSyncNeeded();
         }, 2000);
