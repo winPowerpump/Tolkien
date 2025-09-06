@@ -65,14 +65,16 @@ function getServerTimeInfo() {
   };
 }
 
-async function saveWinner(wallet, amount, signature) {
+async function saveWinnerWithCycle(wallet, amount, signature, cycleId) {
   const { data, error } = await supabase
     .from('winners')
     .insert([
       {
-        wallet,
+        wallet: wallet || 'No winner (no fees)',
         amount,
-        signature
+        signature,
+        cycle_id: cycleId,
+        distributed_at: new Date().toISOString()
       }
     ])
     .select();
@@ -82,6 +84,7 @@ async function saveWinner(wallet, amount, signature) {
     throw error;
   }
 
+  console.log(`Saved winner for cycle ${cycleId}:`, data[0]);
   return data[0];
 }
 
@@ -251,6 +254,33 @@ export async function GET() {
       });
     }
 
+    const timeInfo = getServerTimeInfo();
+    console.log(`[CRON] ${timeInfo.serverTime} - Starting distribution check for cycle ${timeInfo.currentCycle}`);
+    
+    // Check if we already distributed in this exact 5-minute cycle
+    const { data: existingDistribution, error: queryError } = await supabase
+      .from('winners')
+      .select('*')
+      .eq('cycle_id', timeInfo.currentCycle)
+      .limit(1);
+
+    if (queryError) {
+      console.error('Error checking existing distribution:', queryError);
+    }
+
+    if (existingDistribution && existingDistribution.length > 0) {
+      console.log(`Distribution already completed for cycle ${timeInfo.currentCycle}`);
+      return NextResponse.json({
+        success: false,
+        error: `Distribution already completed for cycle ${timeInfo.currentCycle}`,
+        existingDistribution: existingDistribution[0],
+        winners: await getRecentWinners(20),
+        ...timeInfo
+      });
+    }
+
+    console.log(`Starting distribution for cycle ${timeInfo.currentCycle} at ${timeInfo.serverTime}`);
+
     // Get wallet balance before claiming fees
     const balanceBefore = await connection.getBalance(WALLET.publicKey);
     
@@ -263,29 +293,33 @@ export async function GET() {
     // Calculate the amount of SOL claimed from fees
     const claimedAmount = balanceAfter - balanceBefore;
     
-    console.log(`Balance before: ${balanceBefore / 1e9} SOL`);
-    console.log(`Balance after: ${balanceAfter / 1e9} SOL`);
-    console.log(`Claimed from fees: ${claimedAmount / 1e9} SOL`);
+    console.log(`Cycle ${timeInfo.currentCycle} - Balance before: ${balanceBefore / 1e9} SOL`);
+    console.log(`Cycle ${timeInfo.currentCycle} - Balance after: ${balanceAfter / 1e9} SOL`);
+    console.log(`Cycle ${timeInfo.currentCycle} - Claimed from fees: ${claimedAmount / 1e9} SOL`);
 
-    const recipient = await getRandomHolder(TOKEN_MINT);
-    
+    let recipient = null;
     let sig = null;
     let sendAmount = 0;
     
     // Only send if we actually claimed some fees (and it's a meaningful amount)
-    if (claimedAmount > 5000) { // Only distribute if claimed amount > 0.000005 SOL (to cover tx fees)
+    if (claimedAmount > 5000) { // Only distribute if claimed amount > 0.000005 SOL
       sendAmount = claimedAmount - 5000; // Keep 0.000005 SOL for transaction fee
       
       if (sendAmount > 0) {
+        recipient = await getRandomHolder(TOKEN_MINT);
         sig = await sendSol(recipient, sendAmount);
+        console.log(`Cycle ${timeInfo.currentCycle} - Sent ${sendAmount / 1e9} SOL to ${recipient.toBase58()}`);
       }
+    } else {
+      console.log(`Cycle ${timeInfo.currentCycle} - No meaningful fees to distribute (${claimedAmount / 1e9} SOL)`);
     }
 
-    // Save winner to database (even if amount is 0 for transparency)
-    const winner = await saveWinner(
-      recipient.toBase58(),
+    // Save winner to database with cycle ID (even if amount is 0 for transparency)
+    const winner = await saveWinnerWithCycle(
+      recipient ? recipient.toBase58() : null,
       sendAmount / 1e9, // in SOL
-      sig
+      sig,
+      timeInfo.currentCycle
     );
 
     // Get recent winners for response
@@ -293,8 +327,9 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+      cycleId: timeInfo.currentCycle,
       claimResult,
-      recipient: recipient.toBase58(),
+      recipient: recipient ? recipient.toBase58() : null,
       balanceBefore: balanceBefore / 1e9,
       balanceAfter: balanceAfter / 1e9,
       claimedFromFees: claimedAmount / 1e9,
@@ -303,10 +338,10 @@ export async function GET() {
       txSignature: sig,
       winner,
       winners,
-      ...getServerTimeInfo()
+      ...timeInfo
     });
   } catch (e) {
-    console.error("Error in GET handler:", e);
+    console.error(`Error in GET handler for cycle ${getServerTimeInfo().currentCycle}:`, e);
     return NextResponse.json(
       { success: false, error: e.message, ...getServerTimeInfo() },
       { status: 500 }
