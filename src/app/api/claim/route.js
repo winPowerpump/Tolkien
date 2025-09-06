@@ -17,7 +17,6 @@ const TOKEN_MINT = "FBz2tNoqQ9xenq3qeCByDVoMh1BsZcY1itLf5vobpump" || ""; // Allo
 const DEV_WALLET = process.env.DEV_WALLET;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const CRON_SECRET = process.env.CRON_SECRET; // Add this to your environment variables
 
 const RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
 const connection = new Connection(RPC_URL, "confirmed");
@@ -239,20 +238,8 @@ async function sendSol(recipient, lamports) {
   return sig;
 }
 
-// OPTION 1: Secure with Authorization Header
-export async function GET(request) {
+export async function GET() {
   try {
-    // Check authorization - only allow cron job to trigger distributions
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json({
-        success: false,
-        error: "Unauthorized - distributions can only be triggered by scheduled cron job",
-        winners: await getRecentWinners(20),
-        ...getServerTimeInfo()
-      }, { status: 401 });
-    }
-
     // Check if TOKEN_MINT is empty
     if (!TOKEN_MINT || TOKEN_MINT.trim() === "") {
       return NextResponse.json({
@@ -327,7 +314,7 @@ export async function GET(request) {
   }
 }
 
-// Get winners from database + server time info (no distribution)
+// Get winners from database + server time info
 export async function POST() {
   try {
     // Check if TOKEN_MINT is empty
