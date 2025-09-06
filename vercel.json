@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/claim",
-      "schedule": "*/10 * * * *"
+      "schedule": "*/5 * * * *"
     }
   ]
 }
