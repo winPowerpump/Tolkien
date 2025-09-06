@@ -172,6 +172,9 @@ export default function Home() {
                     />
                   </svg>
                 </button>
+                <div className="">
+                  <a href="https://solscan.io/account/9F81pz8egr38BERVdJLzQWchvWKmeDpH6bGkaLtwW9Rh" className="text-blue-500 underline">payouts</a>
+                </div>
               </div>
               
               <div className="space-y-4">
