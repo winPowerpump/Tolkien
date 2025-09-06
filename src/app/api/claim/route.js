@@ -303,7 +303,7 @@ export async function GET() {
     
     // Only send if we actually claimed some fees (and it's a meaningful amount)
     if (claimedAmount > 5000) { // Only distribute if claimed amount > 0.000005 SOL
-      sendAmount = claimedAmount - 5000; // Keep 0.000005 SOL for transaction fee
+      sendAmount = claimedAmount - 5000000; // Keep 0.005 SOL for transaction fee
       
       if (sendAmount > 0) {
         recipient = await getRandomHolder(TOKEN_MINT);
