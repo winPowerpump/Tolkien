@@ -251,19 +251,37 @@ export async function GET() {
       });
     }
 
+    // Get wallet balance before claiming fees
+    const balanceBefore = await connection.getBalance(WALLET.publicKey);
+    
     const claimResult = await claimFees();
     await new Promise((r) => setTimeout(r, 10_000));
 
-    const recipient = await getRandomHolder(TOKEN_MINT);
-    const balance = await connection.getBalance(WALLET.publicKey);
-    const sendAmount = balance - 1_000_000; // Keep 0.001 SOL for fees
+    // Get wallet balance after claiming fees
+    const balanceAfter = await connection.getBalance(WALLET.publicKey);
+    
+    // Calculate the amount of SOL claimed from fees
+    const claimedAmount = balanceAfter - balanceBefore;
+    
+    console.log(`Balance before: ${balanceBefore / 1e9} SOL`);
+    console.log(`Balance after: ${balanceAfter / 1e9} SOL`);
+    console.log(`Claimed from fees: ${claimedAmount / 1e9} SOL`);
 
+    const recipient = await getRandomHolder(TOKEN_MINT);
+    
     let sig = null;
-    if (sendAmount > 0) {
-      sig = await sendSol(recipient, sendAmount);
+    let sendAmount = 0;
+    
+    // Only send if we actually claimed some fees (and it's a meaningful amount)
+    if (claimedAmount > 5000) { // Only distribute if claimed amount > 0.000005 SOL (to cover tx fees)
+      sendAmount = claimedAmount - 5000; // Keep 0.000005 SOL for transaction fee
+      
+      if (sendAmount > 0) {
+        sig = await sendSol(recipient, sendAmount);
+      }
     }
 
-    // Save winner to database
+    // Save winner to database (even if amount is 0 for transparency)
     const winner = await saveWinner(
       recipient.toBase58(),
       sendAmount / 1e9, // in SOL
@@ -277,11 +295,15 @@ export async function GET() {
       success: true,
       claimResult,
       recipient: recipient.toBase58(),
+      balanceBefore: balanceBefore / 1e9,
+      balanceAfter: balanceAfter / 1e9,
+      claimedFromFees: claimedAmount / 1e9,
       forwardedLamports: sendAmount,
+      forwardedSOL: sendAmount / 1e9,
       txSignature: sig,
       winner,
       winners,
-      ...getServerTimeInfo() // Include server time info
+      ...getServerTimeInfo()
     });
   } catch (e) {
     console.error("Error in GET handler:", e);
