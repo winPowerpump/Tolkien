@@ -16,7 +16,7 @@ export default function Home() {
 
   const contractAddress = "FBz2tNoqQ9xenq3qeCByDVoMh1BsZcY1itLf5vobpump";
 
-  // Use useCallback to prevent unnecessary re-renders
+  // Use useCallback to prevent unnecessary re-renderz
   const syncServerTime = useCallback(async () => {
     try {
       const requestStart = Date.now();
