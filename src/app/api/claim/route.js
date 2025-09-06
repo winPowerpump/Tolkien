@@ -25,42 +25,42 @@ const WALLET = Keypair.fromSecretKey(bs58.decode(WALLET_SECRET));
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Helper function to get server time info for 5-minute cycles
+// Helper function to get server time info for 15-minute cycles
 function getServerTimeInfo() {
   const now = new Date();
   const minutes = now.getMinutes();
   const seconds = now.getSeconds();
   const milliseconds = now.getMilliseconds();
   
-  // Calculate minutes elapsed in the current 5-minute cycle
-  const minutesInCycle = minutes % 5;
+  // Calculate minutes elapsed in the current 15-minute cycle
+  const minutesInCycle = minutes % 15;
   
-  // Calculate total elapsed time in the current 5-minute cycle
+  // Calculate total elapsed time in the current 15-minute cycle
   const totalElapsedMs = (minutesInCycle * 60 * 1000) + (seconds * 1000) + milliseconds;
   
-  // Calculate milliseconds until the next 5-minute mark
-  const millisecondsUntilNext = (5 * 60 * 1000) - totalElapsedMs;
+  // Calculate milliseconds until the next 15-minute mark
+  const millisecondsUntilNext = (15 * 60 * 1000) - totalElapsedMs;
   const secondsUntilNext = millisecondsUntilNext / 1000;
   
-  // Get the timestamp of the next scheduled distribution (next 5-minute mark)
+  // Get the timestamp of the next scheduled distribution (next 15-minute mark)
   const nextDistribution = new Date(now);
   nextDistribution.setSeconds(0, 0);
   const currentMinute = nextDistribution.getMinutes();
-  const nextFiveMinuteMark = Math.ceil((currentMinute + 1) / 5) * 5;
-  nextDistribution.setMinutes(nextFiveMinuteMark);
+  const nextFifteenMinuteMark = Math.ceil((currentMinute + 1) / 15) * 15;
+  nextDistribution.setMinutes(nextFifteenMinuteMark);
   
-  // Get the timestamp of the last distribution (previous 5-minute mark)
+  // Get the timestamp of the last distribution (previous 15-minute mark)
   const lastDistribution = new Date(now);
   lastDistribution.setSeconds(0, 0);
-  const lastFiveMinuteMark = Math.floor(currentMinute / 5) * 5;
-  lastDistribution.setMinutes(lastFiveMinuteMark);
+  const lastFifteenMinuteMark = Math.floor(currentMinute / 15) * 15;
+  lastDistribution.setMinutes(lastFifteenMinuteMark);
   
   return {
     serverTime: now.toISOString(),
     secondsUntilNext: Math.ceil(secondsUntilNext),
     nextDistributionTime: nextDistribution.toISOString(),
     lastDistributionTime: lastDistribution.toISOString(),
-    currentCycle: Math.floor(now.getTime() / (5 * 60 * 1000)), // Unique ID for current 5-minute cycle
+    currentCycle: Math.floor(now.getTime() / (15 * 60 * 1000)), // Unique ID for current 15-minute cycle
     tokenMintEmpty: !TOKEN_MINT || TOKEN_MINT.trim() === "" // Add flag for empty token mint
   };
 }
@@ -257,7 +257,7 @@ export async function GET() {
     const timeInfo = getServerTimeInfo();
     console.log(`[CRON] ${timeInfo.serverTime} - Starting distribution check for cycle ${timeInfo.currentCycle}`);
     
-    // Check if we already distributed in this exact 5-minute cycle
+    // Check if we already distributed in this exact 15-minute cycle
     const { data: existingDistribution, error: queryError } = await supabase
       .from('winners')
       .select('*')
