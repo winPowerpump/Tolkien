@@ -116,7 +116,17 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="fixed bottom-3 right-3 z-50 flex items-center">
+      <div className="fixed top-3 left-3 z-50 flex items-center md:hidden">
+        <Link
+          href="https://x.com/powerpumpfun"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white underline text-base hover:text-gray-300 transition-colors pointer-events-auto px-2 py-1"
+        >
+          github
+        </Link>
+      </div>
+      <div className="fixed bottom-3 right-3 z-50 hidden md:flex items-center">
         <Link
           href="https://x.com/powerpumpfun"
           target="_blank"
