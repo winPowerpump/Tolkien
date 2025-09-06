@@ -116,7 +116,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="fixed top-3 left-3 z-50 flex items-center md:hidden">
+      <div className="fixed top-5 left-3 z-50 flex items-center md:hidden">
         <Link
           href="https://x.com/powerpumpfun"
           target="_blank"
