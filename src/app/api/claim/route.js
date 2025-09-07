@@ -25,35 +25,43 @@ const WALLET = Keypair.fromSecretKey(bs58.decode(WALLET_SECRET));
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Helper function to get server time info for hourly cycles
+// Helper function to get server time info for 3-hour cycles
 function getServerTimeInfo() {
   const now = new Date();
+  const hours = now.getHours();
   const minutes = now.getMinutes();
   const seconds = now.getSeconds();
   const milliseconds = now.getMilliseconds();
   
-  // Calculate total elapsed time in the current hour
-  const totalElapsedMs = (minutes * 60 * 1000) + (seconds * 1000) + milliseconds;
+  // Calculate hours elapsed in the current 3-hour cycle
+  const hoursInCycle = hours % 3;
   
-  // Calculate milliseconds until the next hour mark
-  const millisecondsUntilNext = (60 * 60 * 1000) - totalElapsedMs;
+  // Calculate total elapsed time in the current 3-hour cycle
+  const totalElapsedMs = (hoursInCycle * 60 * 60 * 1000) + (minutes * 60 * 1000) + (seconds * 1000) + milliseconds;
+  
+  // Calculate milliseconds until the next 3-hour mark
+  const millisecondsUntilNext = (3 * 60 * 60 * 1000) - totalElapsedMs;
   const secondsUntilNext = millisecondsUntilNext / 1000;
   
-  // Get the timestamp of the next scheduled distribution (next hour mark)
+  // Get the timestamp of the next scheduled distribution (next 3-hour mark)
   const nextDistribution = new Date(now);
   nextDistribution.setMinutes(0, 0, 0);
-  nextDistribution.setHours(nextDistribution.getHours() + 1);
+  const currentHour = nextDistribution.getHours();
+  const nextThreeHourMark = Math.ceil((currentHour + 1) / 3) * 3;
+  nextDistribution.setHours(nextThreeHourMark);
   
-  // Get the timestamp of the last distribution (current hour mark)
+  // Get the timestamp of the last distribution (current 3-hour mark)
   const lastDistribution = new Date(now);
   lastDistribution.setMinutes(0, 0, 0);
+  const lastThreeHourMark = Math.floor(currentHour / 3) * 3;
+  lastDistribution.setHours(lastThreeHourMark);
   
   return {
     serverTime: now.toISOString(),
     secondsUntilNext: Math.ceil(secondsUntilNext),
     nextDistributionTime: nextDistribution.toISOString(),
     lastDistributionTime: lastDistribution.toISOString(),
-    currentCycle: Math.floor(now.getTime() / (60 * 60 * 1000)), // Unique ID for current hour cycle
+    currentCycle: Math.floor(now.getTime() / (3 * 60 * 60 * 1000)), // Unique ID for current 3-hour cycle
     tokenMintEmpty: !TOKEN_MINT || TOKEN_MINT.trim() === "" // Add flag for empty token mint
   };
 }
@@ -250,7 +258,7 @@ export async function GET() {
     const timeInfo = getServerTimeInfo();
     console.log(`[CRON] ${timeInfo.serverTime} - Starting distribution check for cycle ${timeInfo.currentCycle}`);
     
-    // Check if we already distributed in this exact hour cycle
+    // Check if we already distributed in this exact 3-hour cycle
     const { data: existingDistribution, error: queryError } = await supabase
       .from('winners')
       .select('*')
