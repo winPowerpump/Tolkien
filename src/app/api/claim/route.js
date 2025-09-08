@@ -25,36 +25,52 @@ const WALLET = Keypair.fromSecretKey(bs58.decode(WALLET_SECRET));
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Helper function to get server time info for hourly cycles
+// Helper function to get server time info for 4-hour cycles
 function getServerTimeInfo() {
   const now = new Date();
+  
+  // 4-hour intervals: 0, 4, 8, 12, 16, 20
+  const validHours = [0, 4, 8, 12, 16, 20];
+  const currentHour = now.getHours();
   const minutes = now.getMinutes();
   const seconds = now.getSeconds();
   const milliseconds = now.getMilliseconds();
   
-  // Calculate total elapsed time in the current hour
-  const totalElapsedMs = (minutes * 60 * 1000) + (seconds * 1000) + milliseconds;
+  // Find the current and next valid 4-hour marks
+  const currentValidHour = validHours.filter(validHour => validHour <= currentHour).pop() || 0;
+  let nextValidHour = validHours.find(validHour => validHour > currentHour);
   
-  // Calculate milliseconds until the next hour mark
-  const millisecondsUntilNext = (60 * 60 * 1000) - totalElapsedMs;
-  const secondsUntilNext = millisecondsUntilNext / 1000;
-  
-  // Get the timestamp of the next scheduled distribution (next hour mark)
+  // Create next distribution time
   const nextDistribution = new Date(now);
-  nextDistribution.setMinutes(0, 0, 0);
-  nextDistribution.setHours(nextDistribution.getHours() + 1);
+  if (nextValidHour) {
+    nextDistribution.setHours(nextValidHour, 0, 0, 0);
+  } else {
+    // Next valid hour is tomorrow at 00:00
+    nextDistribution.setDate(nextDistribution.getDate() + 1);
+    nextDistribution.setHours(0, 0, 0, 0);
+  }
   
-  // Get the timestamp of the last distribution (current hour mark)
+  // Create last distribution time
   const lastDistribution = new Date(now);
-  lastDistribution.setMinutes(0, 0, 0);
+  lastDistribution.setHours(currentValidHour, 0, 0, 0);
+  
+  // Calculate time until next distribution
+  const millisecondsUntilNext = nextDistribution.getTime() - now.getTime();
+  const secondsUntilNext = Math.ceil(millisecondsUntilNext / 1000);
+  
+  // Create a unique cycle ID based on the last valid hour
+  // This ensures each 4-hour period has a unique ID
+  const cycleStart = new Date(lastDistribution);
+  const cycleId = Math.floor(cycleStart.getTime() / (4 * 60 * 60 * 1000));
   
   return {
     serverTime: now.toISOString(),
-    secondsUntilNext: Math.ceil(secondsUntilNext),
+    secondsUntilNext: Math.max(0, secondsUntilNext),
     nextDistributionTime: nextDistribution.toISOString(),
     lastDistributionTime: lastDistribution.toISOString(),
-    currentCycle: Math.floor(now.getTime() / (60 * 60 * 1000)), // Unique ID for current hour cycle
-    tokenMintEmpty: !TOKEN_MINT || TOKEN_MINT.trim() === "" // Add flag for empty token mint
+    currentCycle: cycleId,
+    currentValidHour,
+    tokenMintEmpty: !TOKEN_MINT || TOKEN_MINT.trim() === ""
   };
 }
 
@@ -248,9 +264,9 @@ export async function GET() {
     }
 
     const timeInfo = getServerTimeInfo();
-    console.log(`[CRON] ${timeInfo.serverTime} - Starting distribution check for cycle ${timeInfo.currentCycle}`);
+    console.log(`[CRON] ${timeInfo.serverTime} - Starting distribution check for cycle ${timeInfo.currentCycle} (hour ${timeInfo.currentValidHour})`);
     
-    // Check if we already distributed in this exact hour cycle
+    // Check if we already distributed in this exact 4-hour cycle
     const { data: existingDistribution, error: queryError } = await supabase
       .from('winners')
       .select('*')
