@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 
 const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
-  const [countdown, setCountdown] = useState(10800); // Changed to 10800 (180 minutes = 3 hours)
+  const [countdown, setCountdown] = useState(3600); // Changed to 3600 (60 minutes)
 
   // Get server-synchronized time
   const getServerTime = () => {
@@ -12,32 +12,27 @@ const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
     return new Date(localTime.getTime() + serverTimeOffset);
   };
 
-  // Calculate seconds until next 3-hour interval using server time
-  const getSecondsUntilNext3Hours = () => {
+  // Calculate seconds until next hour interval using server time
+  const getSecondsUntilNextHour = () => {
     const serverTime = getServerTime();
-    const hours = serverTime.getHours();
     const minutes = serverTime.getMinutes();
     const seconds = serverTime.getSeconds();
     const milliseconds = serverTime.getMilliseconds();
     
-    // Calculate hours elapsed in the current 3-hour cycle
-    const hoursInCycle = hours % 3;
+    // Calculate total elapsed time in the current hour
+    const totalElapsedMs = (minutes * 60 * 1000) + (seconds * 1000) + milliseconds;
     
-    // Calculate total elapsed time in the current 3-hour cycle
-    const totalElapsedMs = (hoursInCycle * 60 * 60 * 1000) + (minutes * 60 * 1000) + (seconds * 1000) + milliseconds;
-    
-    // Calculate milliseconds until the next 3-hour mark
-    const millisecondsUntilNext = (3 * 60 * 60 * 1000) - totalElapsedMs;
+    // Calculate milliseconds until the next hour mark
+    const millisecondsUntilNext = (60 * 60 * 1000) - totalElapsedMs;
     
     return Math.ceil(millisecondsUntilNext / 1000);
   };
 
-  // Format countdown display (hh:mm:ss)
+  // Format countdown display (mm:ss)
   const formatCountdown = (totalSeconds) => {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   // Update countdown every second
@@ -45,11 +40,11 @@ const CountdownTimer = ({ serverTimeOffset, isTimeSynced, onSyncNeeded }) => {
     if (!isTimeSynced) return;
 
     const interval = setInterval(() => {
-      const secondsLeft = getSecondsUntilNext3Hours();
+      const secondsLeft = getSecondsUntilNextHour();
       setCountdown(secondsLeft);
       
-      // Trigger sync when we're close to the next distribution (10799+ seconds means we just passed a 3-hour mark)
-      if (secondsLeft >= 10799) {
+      // Trigger sync when we're close to the next distribution (3599+ seconds means we just passed an hour mark)
+      if (secondsLeft >= 3599) {
         setTimeout(() => {
           onSyncNeeded();
         }, 2000);
