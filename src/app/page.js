@@ -6,17 +6,19 @@ import CountdownTimer from "./components/Timer";
 import Link from "next/link";
 
 export default function Home() {
-  const [winners, setWinners] = useState([]);
+  const [buybacks, setBuybacks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lastClaimTime, setLastClaimTime] = useState(null);
   const [serverTimeOffset, setServerTimeOffset] = useState(0);
   const [isTimeSynced, setIsTimeSynced] = useState(false);
   const [noHolders, setNoHolders] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [tokenMintEmpty, setTokenMintEmpty] = useState(false);
 
   const contractAddress = "123pump";
 
-  // Use useCallback to prevent unnecessary re-renderz
+  // Use useCallback to prevent unnecessary re-renders
   const syncServerTime = useCallback(async () => {
     try {
       const requestStart = Date.now();
@@ -24,6 +26,15 @@ export default function Home() {
       const requestEnd = Date.now();
       const data = await res.json();
       
+      // Handle TOKEN_MINT not configured
+      if (!data.success && data.tokenMintEmpty) {
+        setTokenMintEmpty(true);
+        return;
+      } else {
+        setTokenMintEmpty(false);
+      }
+      
+      // Handle no token holders (keeping original logic if still needed)
       if (!data.success && data.error && data.error.includes("No token holders")) {
         setNoHolders(true);
         return;
@@ -40,9 +51,11 @@ export default function Home() {
         const offset = adjustedServerTime - localTime;
         setServerTimeOffset(offset);
         setIsTimeSynced(true);
-        setWinners(data.winners || []);
+        setBuybacks(data.buybacks || []);
+        setStats(data.stats || null);
         
         console.log(`Time synced. Offset: ${offset}ms`);
+        console.log(`Loaded ${data.buybacks?.length || 0} buybacks`);
       }
     } catch (e) {
       console.error("Failed to sync server time:", e);
@@ -66,17 +79,17 @@ export default function Home() {
     syncServerTime();
   }, [syncServerTime]);
 
-  // Periodic winner fetching and re-sync - adjusted interval for 3-minute distributions
+  // Periodic buyback fetching and re-sync - adjusted interval for 3-minute distributions
   useEffect(() => {
-    if (noHolders) return;
+    if (noHolders || tokenMintEmpty) return;
     
-    // Changed from 45 minutes to 1 minute since distributions are now every 3 minutes
+    // Keep 1 minute interval for frequent updates
     const interval = setInterval(() => {
       syncServerTime();
-    }, 60000); // 1 minute instead of 45 minutes
+    }, 60000); // 1 minute
 
     return () => clearInterval(interval);
-  }, [noHolders, syncServerTime]);
+  }, [noHolders, tokenMintEmpty, syncServerTime]);
 
   const handleManualClaim = useCallback(async () => {
     setLoading(true);
@@ -94,6 +107,18 @@ export default function Home() {
   const formatLastClaimTime = (time) => {
     if (!time) return "Unknown";
     return time.toLocaleTimeString();
+  };
+
+  // Format SOL amount for display
+  const formatSolAmount = (amount) => {
+    if (amount === 0) return "0.0000";
+    return parseFloat(amount).toFixed(4);
+  };
+
+  // Format tokens received for display
+  const formatTokens = (tokens) => {
+    if (!tokens || tokens === 0) return "0";
+    return Math.floor(tokens).toLocaleString();
   };
 
   return (
@@ -125,7 +150,20 @@ export default function Home() {
           />
         </div>
 
-        {noHolders ? (
+        {tokenMintEmpty ? (
+          <div className="flex flex-col items-center justify-center flex-1 min-h-[60vh]">
+            <div className="animate-spin">
+              <img 
+                src="/pump.png" 
+                alt="Pump" 
+                className="h-32 sm:h-48 mx-auto"
+              />
+            </div>
+            <p className="text-white/60 text-lg mt-8 text-center max-w-md">
+              Token mint not configured. Please set TOKEN_MINT environment variable.
+            </p>
+          </div>
+        ) : noHolders ? (
           <div className="flex flex-col items-center justify-center flex-1 min-h-[60vh]">
             <div className="animate-spin">
               <img 
@@ -146,6 +184,28 @@ export default function Home() {
               onSyncNeeded={syncServerTime}
             />
 
+            {/* Stats Display */}
+            {stats && (
+              <div className="w-full max-w-2xl mb-6">
+                <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-4 sm:p-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-white/60 text-sm">Total Buybacks</p>
+                      <p className="text-xl font-bold text-white">{stats.total_buybacks || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-white/60 text-sm">Total SOL</p>
+                      <p className="text-xl font-bold text-white">{formatSolAmount(stats.total_sol_spent || 0)}</p>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <p className="text-white/60 text-sm">Total Tokens</p>
+                      <p className="text-xl font-bold text-white">{formatTokens(stats.total_tokens_received || 0)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="w-full max-w-2xl">
               <div className="flex items-center justify-center gap-3 mb-6">
                 <h2 className="text-2xl sm:text-3xl font-semibold">
@@ -155,7 +215,7 @@ export default function Home() {
                   onClick={handleManualRefresh}
                   disabled={isRefreshing}
                   className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-200 border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Refresh winners"
+                  title="Refresh buybacks"
                 >
                   <svg
                     className={`w-5 h-5 text-white ${isRefreshing ? 'animate-spin' : ''}`}
@@ -178,40 +238,55 @@ export default function Home() {
               </div>
               
               <div className="space-y-4">
-                {winners.length === 0 ? (
+                {buybacks.length === 0 ? (
                   <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 text-center">
                     <p className="text-white/60 text-lg font-semibold">
-                      No buys yet...
+                      No buybacks yet...
                     </p>
                   </div>
                 ) : (
-                  winners.map((w, i) => (
+                  buybacks.map((buyback, i) => (
                     <div
-                      key={i}
+                      key={buyback.id || i}
                       className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-4 sm:p-6 hover:bg-black/50 transition-all duration-200"
                     >
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <p className="font-mono text-sm sm:text-base font-bold text-white">
-                            {w.wallet.slice(0, 6)}...{w.wallet.slice(-6)}
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="font-mono text-lg font-bold text-green-400">
+                              BUYBACK
+                            </p>
+                            <span className="text-xs bg-white/10 px-2 py-1 rounded">
+                              Cycle #{buyback.cycle_id}
+                            </span>
+                          </div>
+                          <p className="text-xs text-white/60 mb-1">
+                            {buyback.executed_at ? new Date(buyback.executed_at).toLocaleString() : 'Invalid Date'}
                           </p>
-                          <p className="text-xs text-white/60 mt-1">
-                            {w.created_at ? new Date(w.created_at).toLocaleString() : 'Invalid Date'}
-                          </p>
+                          {buyback.tokens_received > 0 && (
+                            <p className="text-sm text-blue-300">
+                              {formatTokens(buyback.tokens_received)} tokens received
+                            </p>
+                          )}
                         </div>
                         <div className="text-right">
-                          <p className="text-xl sm:text-2xl text-white">
-                            {w.amount.toFixed(4)} SOL
+                          <p className="text-xl sm:text-2xl text-white font-bold">
+                            {formatSolAmount(buyback.sol_amount)} SOL
                           </p>
-                          {w.signature && (
+                          {buyback.signature && (
                             <a
-                              href={`https://solscan.io/tx/${w.signature}`}
+                              href={`https://solscan.io/tx/${buyback.signature}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs text-blue-400 hover:text-blue-300 underline font-semibold"
                             >
                               View on Solscan →
                             </a>
+                          )}
+                          {!buyback.signature && buyback.sol_amount === 0 && (
+                            <p className="text-xs text-yellow-400">
+                              No fees to buy back
+                            </p>
                           )}
                         </div>
                       </div>
