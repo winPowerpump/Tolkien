@@ -14,7 +14,7 @@ export default function Home() {
   const [noHolders, setNoHolders] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const contractAddress = "FBz2tNoqQ9xenq3qeCByDVoMh1BsZcY1itLf5vobpump";
+  const contractAddress = "123pump";
 
   // Use useCallback to prevent unnecessary re-renderz
   const syncServerTime = useCallback(async () => {
@@ -66,14 +66,14 @@ export default function Home() {
     syncServerTime();
   }, [syncServerTime]);
 
-  // Periodic winner fetching and re-sync - increased interval for 4-hour distributions
+  // Periodic winner fetching and re-sync - adjusted interval for 3-minute distributions
   useEffect(() => {
     if (noHolders) return;
     
-    // Changed from 15 minutes to 45 minutes since distributions are now every 4 hours
+    // Changed from 45 minutes to 1 minute since distributions are now every 3 minutes
     const interval = setInterval(() => {
       syncServerTime();
-    }, 2700000); // 45 minutes instead of 15 minutes
+    }, 60000); // 1 minute instead of 45 minutes
 
     return () => clearInterval(interval);
   }, [noHolders, syncServerTime]);
@@ -102,7 +102,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
       </div>
 
-      <div className="fixed top-5 right-3 z-50 flex items-center">
+      <div className="fixed top-1 right-3 z-50 flex items-center">
         <Link
           href="https://x.com/powerpumpfun"
           target="_blank"
@@ -149,7 +149,7 @@ export default function Home() {
             <div className="w-full max-w-2xl">
               <div className="flex items-center justify-center gap-3 mb-6">
                 <h2 className="text-2xl sm:text-3xl font-semibold">
-                  Recent Winners
+                  Recent Buybacks
                 </h2>
                 <button
                   onClick={handleManualRefresh}
@@ -173,7 +173,7 @@ export default function Home() {
                   </svg>
                 </button>
                 <div className="">
-                  <a href="https://solscan.io/account/9F81pz8egr38BERVdJLzQWchvWKmeDpH6bGkaLtwW9Rh" className="text-blue-500 underline">payouts</a>
+                  <a href="https://solscan.io/account/9F81pz8egr38BERVdJLzQWchvWKmeDpH6bGkaLtwW9Rh" className="text-blue-500 underline">solscan</a>
                 </div>
               </div>
               
@@ -181,7 +181,7 @@ export default function Home() {
                 {winners.length === 0 ? (
                   <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-8 text-center">
                     <p className="text-white/60 text-lg font-semibold">
-                      No winners yet...
+                      No buys yet...
                     </p>
                   </div>
                 ) : (
