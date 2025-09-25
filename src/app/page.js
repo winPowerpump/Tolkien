@@ -104,7 +104,7 @@ export default function Home() {
 
       <div className="fixed top-1 right-3 z-50 flex items-center">
         <Link
-          href="https://x.com/powerpumpfun"
+          href="https://x.com/projecttolkien"
           target="_blank"
           rel="noopener noreferrer"
           className="text-white font-semibold text-base hover:text-gray-300 transition-colors pointer-events-auto px-2 py-1"
