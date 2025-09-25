@@ -193,7 +193,7 @@ export default function Home() {
                       <div className="flex justify-between items-center">
                         <div className="flex-1">
                           <p className="font-mono text-sm sm:text-base font-bold text-white">
-                            Buyback #{buyback.cycle_id}
+                            Buyback
                           </p>
                           <p className="text-xs text-white/60 mt-1">
                             {buyback.executed_at ? new Date(buyback.executed_at).toLocaleString() : 'Invalid Date'}
