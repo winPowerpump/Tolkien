@@ -173,7 +173,7 @@ export default function Home() {
                   </svg>
                 </button>
                 <div className="">
-                  <a href="https://solscan.io/account/9F81pz8egr38BERVdJLzQWchvWKmeDpH6bGkaLtwW9Rh" className="text-blue-500 underline">solscan</a>
+                  <a href="https://solscan.io/account/7mZJZ9qPKLbm3uSmSCqaBBcwvoxCjNYaDaYs4q7hg82z" className="text-blue-500 underline">solscan</a>
                 </div>
               </div>
               
